@@ -12,7 +12,7 @@ var connection = mysql.createConnection({
 
 connection.connect(function (err) {
     if (err) throw err;
-
+    chooseAction();
 });
 
 function chooseAction() {
@@ -425,6 +425,6 @@ function newEmployee() {
     })
 }
 
-chooseAction();
+
 
 
