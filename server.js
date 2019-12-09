@@ -69,7 +69,7 @@ function updateEmployee() {
                             type: "list",
                             name: "chooseEdit",
                             message: "What would you like to edit for this employee?",
-                            choices: ['First name', 'Last name', 'Role']
+                            choices: ['First name', 'Last name', 'Role', 'Manager']
                         }
                     ])
                     .then(function (data) {
@@ -77,10 +77,58 @@ function updateEmployee() {
                             newFirstName(employeeID);
                         } else if (data.chooseEdit === "Last name") {
                             newLastName(employeeID);
-                        } else {
+                        } else if (data.chooseEdit === "Role") {
                             newEmpRole(employeeID);
+                        } else {
+                            newManager(employeeID);
                         }
                     });
+            });
+    })
+}
+
+function newManager(employeeID) {
+    connection.query("SELECT * FROM employee", function (err, results) {
+        if (err) throw err;
+        inquirer
+            .prompt([
+                {
+                    type: "list",
+                    name: "employeeList",
+                    message: "Who is their manager?",
+                    choices: function () {
+                        var choiceArray = [];
+                        for (var i = 0; i < results.length; i++) {
+                            choiceArray.push(results[i].id + " " + results[i].first_name + " " + results[i].last_name);
+                        }
+                        return choiceArray;
+                    }
+                }
+            ])
+            .then(function (data) {
+                for (var i = 0; i < results.length; i++) {
+                    if (data.employeeList === results[i].id + " " + results[i].first_name + " " + results[i].last_name) {
+                        data.employeeList = results[i].id
+                    }
+                }
+                return data;
+            })
+            .then(function (data) {
+                connection.query(
+                    "UPDATE employee SET ? WHERE ?",
+                    [
+                        {
+                            manager_id: data.employeeList
+                        },
+                        {
+                            id: employeeID
+                        }
+                    ],
+                    function (error) {
+                        if (error) throw err;
+                        chooseAction();
+                    }
+                );
             });
     })
 }
@@ -91,7 +139,7 @@ function newEmpRole(employeeID) {
         inquirer
             .prompt([
                 {
-                    type: "rawlist",
+                    type: "list",
                     name: "roleID",
                     message: "What is their new role.",
                     choices: function () {
@@ -114,19 +162,19 @@ function newEmpRole(employeeID) {
             .then(function (data) {
                 connection.query(
                     "UPDATE employee SET ? WHERE ?",
-                [
-                  {
-                    role_id: data.roleID
-                  },
-                  {
-                    id: employeeID
-                  }
-                ],
-                function(error) {
-                  if (error) throw err;
-                  chooseAction();
-                }
-              );
+                    [
+                        {
+                            role_id: data.roleID
+                        },
+                        {
+                            id: employeeID
+                        }
+                    ],
+                    function (error) {
+                        if (error) throw err;
+                        chooseAction();
+                    }
+                );
             });
     })
 }
@@ -144,18 +192,18 @@ function newLastName(employeeID) {
             connection.query(
                 "UPDATE employee SET ? WHERE ?",
                 [
-                  {
-                    last_name: data.newLast
-                  },
-                  {
-                    id: employeeID
-                  }
+                    {
+                        last_name: data.newLast
+                    },
+                    {
+                        id: employeeID
+                    }
                 ],
-                function(error) {
-                  if (error) throw err;
-                  chooseAction();
+                function (error) {
+                    if (error) throw err;
+                    chooseAction();
                 }
-              );
+            );
         });
 }
 
@@ -172,18 +220,18 @@ function newFirstName(employeeID) {
             connection.query(
                 "UPDATE employee SET ? WHERE ?",
                 [
-                  {
-                    first_name: data.newFirst
-                  },
-                  {
-                    id: employeeID
-                  }
+                    {
+                        first_name: data.newFirst
+                    },
+                    {
+                        id: employeeID
+                    }
                 ],
-                function(error) {
-                  if (error) throw err;
-                  chooseAction();
+                function (error) {
+                    if (error) throw err;
+                    chooseAction();
                 }
-              );
+            );
         });
 }
 
@@ -280,7 +328,7 @@ function newRole() {
                     message: "Please enter the new roles's salary.",
                 },
                 {
-                    type: "rawlist",
+                    type: "list",
                     name: "departmentID",
                     message: "Please enter the new role's department.",
                     choices: function () {
@@ -333,7 +381,13 @@ function newEmployee() {
                     message: "Please enter the new employee's last name.",
                 },
                 {
-                    type: "rawlist",
+                    type: "number",
+                    name: "managerID",
+                    message: "Please enter the employee number of the new employee's manager (press enter if unknown).",
+                    default: 0
+                },
+                {
+                    type: "list",
                     name: "roleID",
                     message: "Please enter the new employee's role.",
                     choices: function () {
@@ -354,13 +408,13 @@ function newEmployee() {
                 return data;
             })
             .then(function (data) {
-                console.log("This is the roleID " + data.roleID);
                 connection.query(
                     "INSERT INTO employee SET ?",
                     {
                         first_name: data.firstName,
                         last_name: data.lastName,
-                        role_id: data.roleID
+                        role_id: data.roleID,
+                        manager_id: data.managerID
                     },
                     function (err) {
                         if (err) throw err;
